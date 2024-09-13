@@ -1,38 +1,58 @@
-/**
- * @author NTKhang
- * ! The source code is written by NTKhang, please don't change the author's name everywhere. Thank you for using
- * ! Official source code: https://github.com/ntkhang03/Goat-Bot-V2
- * ! If you do not download the source code from the above address, you are using an unknown version and at risk of having your account hacked
- *
- * English:
- * ! Please do not change the below code, it is very important for the project.
- * It is my motivation to maintain and develop the project for free.
- * ! If you change it, you will be banned forever
- * Thank you for using
- *
- * Vietnamese:
- * ! Vui lòng không thay đổi mã bên dưới, nó rất quan trọng đối với dự án.
- * Nó là động lực để tôi duy trì và phát triển dự án miễn phí.
- * ! Nếu thay đổi nó, bạn sẽ bị cấm vĩnh viễn
- * Cảm ơn bạn đã sử dụng
- */
-
 const { spawn } = require("child_process");
 const log = require("./logger/log.js");
+require('dotenv').config(); // Charger les variables d'environnement depuis le fichier .env
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
+const port = process.env.PORT || 3000;
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Route pour la vérification du webhook
+app.get('/webhook', (req, res) => {
+    let mode = req.query['hub.mode'];
+    let token = req.query['hub.verify_token'];
+    let challenge = req.query['hub.challenge'];
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            console.log('WEBHOOK_VERIFIED');
+            res.status(200).send(challenge);
+        } else {
+            res.sendStatus(403);
+        }
+    } else {
+        res.sendStatus(400);
+    }
+});
+
+// Route pour recevoir les messages
+app.post('/webhook', (req, res) => {
+    console.log('Webhook received:', req.body);
+    res.sendStatus(200);
+});
 
 function startProject() {
-	const child = spawn("node", ["Goat.js"], {
-		cwd: __dirname,
-		stdio: "inherit",
-		shell: true
-	});
+    const child = spawn("node", ["Goat.js"], {
+        cwd: __dirname,
+        stdio: "inherit",
+        shell: true
+    });
 
-	child.on("close", (code) => {
-		if (code == 2) {
-			log.info("Restarting Project...");
-			startProject();
-		}
-	});
+    child.on("close", (code) => {
+        if (code == 2) {
+            log.info("Restarting Project...");
+            startProject();
+        }
+    });
 }
 
 startProject();
+
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
